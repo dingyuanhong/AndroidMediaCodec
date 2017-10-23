@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/MediaCodec.iml" filepath="$PROJECT_DIR$/MediaCodec.iml" />
+      <module fileurl="file://$PROJECT_DIR$/AndroidMediaCodec.iml" filepath="$PROJECT_DIR$/AndroidMediaCodec.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>
