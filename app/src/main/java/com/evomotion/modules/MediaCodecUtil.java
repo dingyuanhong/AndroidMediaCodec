@@ -90,7 +90,7 @@ public class MediaCodecUtil{
         MediaCodecInfo codecInfo = null;
         for (int i = 0; i < numCodecs && codecInfo == null; i++) {
             MediaCodecInfo info = MediaCodecList.getCodecInfoAt(i);
-            if (!info.isEncoder()) {
+            if (info.isEncoder()) {
                 continue;
             }
             String[] types = info.getSupportedTypes();
