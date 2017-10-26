@@ -1,6 +1,7 @@
 package com.evomotion.mediacodec;
 
 
+import android.media.MediaCodec;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -8,18 +9,23 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Button;
 
+import com.evomotion.modules.FrameWriter;
 import com.evomotion.modules.MediaCodecThread;
 import com.evomotion.modules.MediaCodecUtil;
+import com.evomotion.modules.MediaEncodeInfo;
+import com.evomotion.modules.OnVideoDecodeListener;
+import com.evomotion.modules.OnVideoEncodeListener;
+import com.evomotion.modules.VideoConfiguration;
+import com.evomotion.modules.YUVInputVideoController;
 
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
+import java.nio.ByteBuffer;
 
-public class H264FileDecodeActivity extends AppCompatActivity implements View.OnClickListener {
+public class H264FileDecodeActivity extends AppCompatActivity implements View.OnClickListener,
+                                                                         OnVideoEncodeListener,
+                                                                         OnVideoDecodeListener {
 
-    @BindView(R.id.test_surface_view)
-    SurfaceView testSurfaceView;
     private String TAG = "H264FileDecodeActivity";
     private SurfaceHolder holder;
     //解码器
@@ -36,13 +42,23 @@ public class H264FileDecodeActivity extends AppCompatActivity implements View.On
     private String path = Environment.getExternalStorageDirectory().toString() + "/UVCResource/video.h264";
     private int width = 3040;
     private int height = 1520;
+    private SurfaceView testSurfaceView;
+    private YUVInputVideoController mController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG,path);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_h264_file_decodec);
-        ButterKnife.bind(this);
+        testSurfaceView = (SurfaceView) findViewById(R.id.test_surface_view);
+        Button getInfo = (Button) findViewById(R.id.get_info);
+        getInfo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MediaEncodeInfo info = new MediaEncodeInfo();
+                info.printAllCodec();
+            }
+        });
         initSurface();
     }
 
@@ -60,6 +76,7 @@ public class H264FileDecodeActivity extends AppCompatActivity implements View.On
                 if (codecUtil == null) {
 //                    codecUtil = new MediaCodecUtil(holder);
                     codecUtil = new MediaCodecUtil(holder,width,height);
+                    codecUtil.setVideoListener(H264FileDecodeActivity.this);
                     codecUtil.startCodec();
                 }
                 if (thread == null) {
@@ -85,10 +102,36 @@ public class H264FileDecodeActivity extends AppCompatActivity implements View.On
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.play_h264_file:
+                mController = new YUVInputVideoController();
+                mController.setVideoEncoderListener(this);
+                VideoConfiguration configuration = new VideoConfiguration.Builder().setSize(width,height).build();
+                mController.setVideoConfiguration(configuration);
+                mController.resume();
+                mController.start();
                 if (thread != null) {
                     thread.start();
                 }
                 break;
+        }
+    }
+
+    FrameWriter mFrameWriter = new FrameWriter();
+
+    @Override
+    public void onVideoEncode(ByteBuffer bb, MediaCodec.BufferInfo bi) {
+        Log.d("xxx","xiao fei offset:"+bi.offset+",size:"+bi.size);
+        bb.position(bi.offset);
+        bb.limit(bi.offset + bi.size);
+        mFrameWriter.writeFrameToStorage(bb,null);
+    }
+
+    @Override
+    public void onVideoDecode(ByteBuffer bb, MediaCodec.BufferInfo bi) {
+        if(mController != null) {
+            bb.position(bi.offset);
+            bb.limit(bi.offset + bi.size);
+            Log.e("xxx","offset:"+bi.offset+",size:"+bi.size);
+            mController.queueBufferInfo(bb,1080,960);
         }
     }
 }
