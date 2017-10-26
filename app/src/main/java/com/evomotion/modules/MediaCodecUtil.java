@@ -30,6 +30,7 @@ public class MediaCodecUtil{
     private ByteBuffer mSPS;
     private ByteBuffer mPPS;
     private boolean isInitedCodec = false;
+    private boolean isShowSurface = false;
     // 需要解码的类型
     private final static String MIME_TYPE = "video/avc"; // H.264 Advanced Video
     private final static int TIME_INTERNAL = 5;
@@ -228,7 +229,11 @@ public class MediaCodecUtil{
             }
             Log.i(TAG,"Codec configure.");
             //配置MediaFormat以及需要显示的surface
-            mCodec.configure(mediaFormat, holder.getSurface(), null, 0);
+            if(isShowSurface) {
+                mCodec.configure(mediaFormat, holder.getSurface(), null, 0);
+            }else{
+                mCodec.configure(mediaFormat, null, null, 0);
+            }
         }catch(Exception ex)
         {
             Log.e(TAG,"Codec configure Error.");
@@ -385,11 +390,26 @@ public class MediaCodecUtil{
         if (outputBufferIndex < 0) {
             Log.e(TAG,"outputBufferIndex = " + outputBufferIndex);
         }
+        ByteBuffer[] outBuffers = mCodec.getOutputBuffers();
         //循环解码，直到数据全部解码完成
         while (outputBufferIndex >= 0) {
+            if(!isShowSurface) {
+                if (outputBufferIndex >= 0) {
+                    ByteBuffer bb = outBuffers[outputBufferIndex];
+                    if (mListener != null) {
+                        mListener.onVideoDecode(bb, bufferInfo);
+                    }
+                }
+            }
+
             //logger.d("outputBufferIndex = " + outputBufferIndex);
             //true : 将解码的数据显示到surface上
-            mCodec.releaseOutputBuffer(outputBufferIndex, true);
+            if(isShowSurface){
+                mCodec.releaseOutputBuffer(outputBufferIndex, true);
+            }else{
+                mCodec.releaseOutputBuffer(outputBufferIndex, false);
+            }
+
 
             if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                 Log.e(TAG, "BUFFER_FLAG_END_OF_STREAM");
@@ -399,6 +419,12 @@ public class MediaCodecUtil{
         }
 
         return true;
+    }
+
+    private OnVideoDecodeListener mListener;
+
+    public void setVideoListener(OnVideoDecodeListener mOnVideoListener) {
+        this.mListener = mOnVideoListener;
     }
 
     /**
