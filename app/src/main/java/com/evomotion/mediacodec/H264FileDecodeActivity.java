@@ -59,6 +59,8 @@ public class H264FileDecodeActivity extends AppCompatActivity implements View.On
                 info.printAllCodec();
             }
         });
+        Button play_h264_file = (Button) findViewById(R.id.play_h264_file);
+        play_h264_file.setOnClickListener(this);
         initSurface();
     }
 
